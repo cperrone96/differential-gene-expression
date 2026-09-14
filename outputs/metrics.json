@@ -1,0 +1,31 @@
+{
+  "seed": 2024,
+  "repeats": 20,
+  "one_run": {
+    "genes_input": 2000,
+    "genes_retained": 1975,
+    "true_de": 169,
+    "calls": 129,
+    "true_positives": 107,
+    "false_positives": 22,
+    "empirical_fdr": 0.17054263565891473,
+    "power": 0.6331360946745562,
+    "bias_mean_log2fc": 0.04469624996155412,
+    "coverage_95pct": 0.9763313609467456,
+    "normalization_factor_min": 0.6247209548557946,
+    "normalization_factor_max": 1.3545595624587443
+  },
+  "repeated_mean": {
+    "empirical_fdr": 0.16195636543084793,
+    "power": 0.6496168279277768,
+    "bias_mean_log2fc": 0.012921118552760272,
+    "coverage_95pct": 0.945550517492497
+  },
+  "repeated_fdr_95th_percentile": 0.17850682908822446,
+  "design": {
+    "normalization": "median-of-ratios",
+    "filter": "CPM >= 5 in at least 6 samples",
+    "test": "Welch t-test on log2 normalized counts",
+    "fdr": "Benjamini-Hochberg"
+  }
+}

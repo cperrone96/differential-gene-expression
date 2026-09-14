@@ -1,72 +1,59 @@
-# Differential Gene-Expression Analysis (RNA-seq, case vs. control)
+# Differential gene expression: a reproducible synthetic benchmark
 
-Finding the genes that change between two biological conditions — the standard
-first read-out of a transcriptomics experiment. Full pipeline: **count
-normalization → PCA / QC → per-gene differential-expression testing with
-multiple-testing correction → volcano plot & clustered heatmap → validation
-against ground truth**.
+This is an educational simulation, not a biological result. It asks whether a
+small case/control RNA-seq experiment can recover known effects under count
+noise and a deliberate composition shift. The observation unit is one gene;
+the target is the simulated disease-vs-control log2 fold-change. No human or
+clinical data are included.
 
-Draws on the molecular-biology and neuroscience research I did at UC Irvine,
-reframed as a reproducible statistical pipeline.
+The primary analysis is a transparent Welch test on log2 counts after
+median-of-ratios (DESeq-style) normalization. A low-count filter keeps genes
+with CPM >= 5 in at least six of twelve samples. Benjamini-Hochberg is applied
+to gene-level p-values, with calls requiring FDR < 0.05 and |log2FC| >= 1.
+This is intentionally a teaching benchmark, not a replacement for a
+negative-binomial GLM workflow such as DESeq2 or edgeR.
 
-## Analysis
+## Results (seed 2024; 10-seed check-in)
 
-1. **Normalize** — low-count filter, counts-per-million (CPM), log2 transform.
-2. **PCA** — control vs. disease separate cleanly along PC1: a real global signal.
-3. **Differential expression** — Welch's *t*-test per gene + **Benjamini-Hochberg
-   FDR** to control false discoveries across ~2,000 simultaneous tests.
-4. **Volcano plot & clustered heatmap** — reduce 2,000 genes to a defensible
-   shortlist; disease samples cluster apart from controls on the top DE set.
-5. **Ground-truth validation** — the data is synthetic, so true DE genes are
-   known.
+The checked-in machine-readable results are in `outputs/metrics.json` and
+`outputs/simulation_metrics.csv`. In the current run, the single realization
+made 129 calls (107 true positives, 22 false positives; empirical FDR 17.1%)
+and power was 63.3%. Across twenty deterministic seeds, mean empirical FDR was
+16.2%, mean power 65.0%, mean log2FC bias +0.01, and mean 95% interval coverage
+94.6%. These results demonstrate why one favorable simulation cannot establish
+FDR control; the composition shift and the simple Welch test produce more
+false discoveries than the nominal threshold in this design.
 
-## Result
+`outputs/differential_expression_results.csv` contains estimates, p-values,
+BH FDR, 95% Welch intervals, and truth labels. `outputs/sensitivity_by_true_effect.csv`
+and `outputs/sensitivity_vs_effect.png` show power by true effect size;
+`outputs/top_genes_heatmap.png` is a descriptive QC visualization, not proof
+of a biological/global signal.
 
-At FDR < 0.05 and |log2FC| > 1 the pipeline calls **112 genes** with:
-
-| Metric | Value |
-|---|---|
-| True positives | 109 |
-| False positives | 3 |
-| Empirical FDR among calls | **2.7%** (target < 5%) |
-| Sensitivity (recall of true DE genes) | 0.61 |
-| log2FC recovery (est. vs. true) | **r ≈ 0.97** |
-
-The FDR is correctly controlled and fold-changes are recovered accurately.
-Sensitivity is bounded by effect size — the missed genes are small-fold-change
-ones near the detection limit with 6 replicates per group, exactly as expected.
-
-![Volcano plot](figures/volcano.png)
-
-## Data
-
-All data is **synthetic**, generated with a fixed random seed by
-[`generate_data.py`](generate_data.py): a 6-vs-6 case-control design over ~2,000
-genes with realistic baseline expression, per-sample library-size variation, and
-**negative-binomial** (over-dispersed) count noise. A known subset of genes is
-truly differentially expressed with defined log2 fold-changes. No real sequencing
-data is used; the generator is committed for reproducibility.
+## Reproduce
 
 ```bash
-python generate_data.py     # writes data/counts.csv, sample_info.csv, gene_truth.csv
-```
-
-**Methods note:** production RNA-seq uses negative-binomial GLMs (DESeq2 / edgeR).
-This project uses a transparent CPM + log2 + Welch *t*-test + BH-FDR pipeline —
-the same statistical logic, built from first principles.
-
-## Skills demonstrated
-
-- High-dimensional statistical testing and **multiple-testing correction (FDR)**
-- Count-data normalization (CPM, log2)
-- Dimensionality reduction (**PCA**) and unsupervised **clustering**
-- Volcano / heatmap visualization for genomics
-- Validating an analysis pipeline against ground truth
-
-## Run it
-
-```bash
+python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-python generate_data.py
-jupyter lab      # open differential_gene_expression.ipynb
+python generate_data.py --seed 2024
+python analysis.py --seed 2024 --repeats 20 --output-dir outputs
+pytest -q
 ```
+
+The generator accepts any integer seed and writes only synthetic counts,
+sample metadata, and known truth. Tests verify deterministic generation,
+schema/truth invariants, that the low-count filter removes rows, and that
+composition-aware normalization plus interval metrics are exercised.
+
+The notebook is a clean-kernel presentation of the same command-line analysis;
+the script and CSV/JSON artifacts are canonical for reproducibility.
+
+## Limitations and nonclaims
+
+- Synthetic negative-binomial counts do not validate a real assay or biological
+  pathway, and the truth labels are simulation truth rather than annotations.
+- The Welch-on-log2-counts test is not a count-aware GLM and should not be used
+  for production RNA-seq decisions.
+- FDR, power, bias, and coverage are realization-specific summaries; the
+  repeated-seed check quantifies this design only and is not a guarantee for
+  another sample size, dispersion, or composition.
