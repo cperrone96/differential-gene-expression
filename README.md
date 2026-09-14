@@ -13,7 +13,7 @@ to gene-level p-values, with calls requiring FDR < 0.05 and |log2FC| >= 1.
 This is intentionally a teaching benchmark, not a replacement for a
 negative-binomial GLM workflow such as DESeq2 or edgeR.
 
-## Results (seed 2024; 10-seed check-in)
+## Results (seed 2024; 20-seed check-in)
 
 The checked-in machine-readable results are in `outputs/metrics.json` and
 `outputs/simulation_metrics.csv`. In the current run, the single realization
